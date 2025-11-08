@@ -1,4 +1,5 @@
 using Api.Data;
+using Api.Model;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,7 +21,7 @@ namespace Api.Extensions
             this IServiceCollection services
         )
         {
-            services.AddIdentity<IdentityUser, IdentityRole>()
+            services.AddIdentity<AppUser, IdentityRole>()
             .AddEntityFrameworkStores<AppDbContext>();
         }
     }
