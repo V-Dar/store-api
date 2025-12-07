@@ -1,6 +1,7 @@
 using System.Net;
 using Api.Data;
 using Api.Model;
+using Api.ModelDto;
 using Bogus.DataSets;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -111,6 +112,125 @@ namespace Api.Controller
                     IsSuccess = false,
                     StatusCode = HttpStatusCode.BadRequest,
                     ErrorMessages = { "Что-то поломалось", ex.Message }
+                });
+            }
+        }
+
+        [HttpPut]
+        public async Task<ActionResult<ResponseServer>> UpdateProduct(int id, ProductUpdateDto productUpdateDto)
+        {
+            try
+            {
+                if (ModelState.IsValid)
+                {
+                    if (productUpdateDto == null
+                    || productUpdateDto.Id != id)
+                    {
+                        return BadRequest(new ResponseServer
+                        {
+                            IsSuccess = false,
+                            StatusCode = HttpStatusCode.BadRequest,
+                            ErrorMessages = { "Модель данных не подходит" }
+                        });
+                    }
+                    else
+                    {
+                        Product productFromDb = await dbContext.Products.FirstOrDefaultAsync(p => p.Id == id);
+
+                        if (productFromDb == null)
+                        {
+                            return NotFound(new ResponseServer
+                            {
+                                IsSuccess = false,
+                                StatusCode = HttpStatusCode.NotFound,
+                                ErrorMessages = { "Продукт не найден" }
+                            });
+                        }
+
+                        productFromDb.Name = productUpdateDto.Name;
+                        productFromDb.Description = productUpdateDto.Description;
+                        productFromDb.SpecialTag = productUpdateDto.SpecialTag;
+                        productFromDb.Category = productUpdateDto.Category;
+                        productFromDb.Price = productUpdateDto.Price;
+
+                        if (productUpdateDto.Image != null
+                        && productUpdateDto.Image.Length > 0)
+                        {
+                            productFromDb.Image = "https://cataas.com/cat?width=300&cat?height=:300";
+                        }
+
+                        dbContext.Products.Update(productFromDb);
+                        await dbContext.SaveChangesAsync();
+
+                        return Ok(new ResponseServer
+                        {
+                            StatusCode = HttpStatusCode.OK,
+                            Result = productFromDb
+                        });
+                    }
+                }
+                else
+                {
+                    return BadRequest(new ResponseServer
+                    {
+                        IsSuccess = false,
+                        StatusCode = HttpStatusCode.BadRequest,
+                        ErrorMessages = { "Модель данных не подходит" }
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ResponseServer
+                {
+                    IsSuccess = false,
+                    StatusCode = HttpStatusCode.BadRequest,
+                    ErrorMessages = { "Что-то пошло не так", ex.Message }
+                });
+            }
+        }
+
+        [HttpDelete]
+        public async Task<ActionResult<ResponseServer>> RemoveProduct(int id)
+        {
+            try
+            {
+                if (id <= 0)
+                {
+                    return BadRequest(new ResponseServer
+                    {
+                        IsSuccess = false,
+                        StatusCode = HttpStatusCode.BadRequest,
+                        ErrorMessages = { "Неверный id" }
+                    });
+                }
+                Product productFromDb = await dbContext.Products.FirstOrDefaultAsync(p => p.Id == id);
+                if (productFromDb == null)
+                {
+                    return NotFound(new ResponseServer
+                    {
+                        IsSuccess = false,
+                        StatusCode = HttpStatusCode.NotFound,
+                        ErrorMessages = { "Продукт не найден" }
+                    });
+                }
+
+                dbContext.Products.Remove(productFromDb);
+                await dbContext.SaveChangesAsync();
+
+                return Ok(new ResponseServer
+                {
+                    IsSuccess = true,
+                    StatusCode = HttpStatusCode.NoContent,
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ResponseServer
+                {
+                    IsSuccess = false,
+                    StatusCode = HttpStatusCode.BadRequest,
+                    ErrorMessages = { "Что-то пошло не так", ex.Message }
                 });
             }
         }

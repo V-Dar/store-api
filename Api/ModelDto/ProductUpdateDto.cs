@@ -8,7 +8,6 @@ namespace Api.ModelDto
 {
     public class ProductUpdateDto
     {
-        [Key]
         public int Id { get; set; }
         [Required]
         public string Name { get; set; }
