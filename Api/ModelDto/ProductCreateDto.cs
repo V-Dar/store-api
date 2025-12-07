@@ -2,10 +2,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Api.Model
 {
-    public class Product
+    public class ProductCreateDto
     {
-        [Key]
-        public int Id { get; set; }
         [Required]
         public string Name { get; set; }
         [Required]
