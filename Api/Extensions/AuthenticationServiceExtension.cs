@@ -1,0 +1,36 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+
+namespace Api.Extensions
+{
+    public static class AuthenticationServiceExtension
+    {
+        public static IServiceCollection AddAuthenticationConfig(this IServiceCollection services,
+        IConfiguration configuration)
+        {
+            var authSettingsToken = configuration["AuthSettings:SeсretKey"];
+            services.AddAuthentication(u =>
+            {
+                u.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                u.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(u =>
+            {
+                u.RequireHttpsMetadata = false;
+                u.SaveToken = true;
+                u.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.ASCII.GetBytes(authSettingsToken)),
+                    ValidateIssuer = false,
+                    ValidateAudience = false
+                };
+            });
+
+            return services;
+        }
+    }
+}

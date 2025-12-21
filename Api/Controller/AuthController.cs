@@ -3,6 +3,7 @@ using Api.Common;
 using Api.Data;
 using Api.Model;
 using Api.ModelDto;
+using Api.Service;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,14 +14,17 @@ namespace Api.Controller
     {
         private UserManager<AppUser> userManager;
         private RoleManager<IdentityRole> roleManager;
+        private readonly JwtTokenGenerator jwtTokenGenerator;
 
         public AuthController(AppDbContext dbContext,
          UserManager<AppUser> userManager,
-          RoleManager<IdentityRole> roleManager) 
+          RoleManager<IdentityRole> roleManager,
+          JwtTokenGenerator jwtTokenGenerator)
           : base(dbContext)
         {
             this.userManager = userManager;
             this.roleManager = roleManager;
+            this.jwtTokenGenerator = jwtTokenGenerator;
         }
         [HttpPost]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDto registerRequestDto)
@@ -31,7 +35,7 @@ namespace Api.Controller
                 {
                     IsSuccess = false,
                     StatusCode = HttpStatusCode.BadRequest,
-                    ErrorMessages = {"Некорректная модель запроса"}
+                    ErrorMessages = { "Некорректная модель запроса" }
                 });
             }
 
@@ -44,7 +48,7 @@ namespace Api.Controller
                 {
                     IsSuccess = false,
                     StatusCode = HttpStatusCode.BadRequest,
-                    ErrorMessages = {"Такой пользователь уже есть"}
+                    ErrorMessages = { "Такой пользователь уже есть" }
                 });
             }
 
@@ -64,7 +68,7 @@ namespace Api.Controller
                 {
                     IsSuccess = false,
                     StatusCode = HttpStatusCode.BadRequest,
-                    ErrorMessages = {"Ошибка регистрации"}
+                    ErrorMessages = { "Ошибка регистрации" }
                 });
             }
 
@@ -73,12 +77,45 @@ namespace Api.Controller
                 ? SharedData.Roles.Admin
                 : SharedData.Roles.Consumer;
 
-                await userManager.AddToRoleAsync(newAppUser, newRoleAppUser);
-                return Ok(new ResponseServer
+            await userManager.AddToRoleAsync(newAppUser, newRoleAppUser);
+            return Ok(new ResponseServer
+            {
+                StatusCode = HttpStatusCode.OK,
+                Result = "Регистрация завершена"
+            });
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<ResponseServer>> Login(
+            [FromBody] LoginRequestDto loginRequestDto
+        )
+        {
+            var userFromDb = await dbContext
+            .AppUsers
+            .FirstOrDefaultAsync(x => x.Email.ToLower() == loginRequestDto.Email.ToLower());
+
+            if (userFromDb == null || !await userManager.CheckPasswordAsync(userFromDb, loginRequestDto.Password))
+            {
+                return BadRequest(new ResponseServer
                 {
-                    StatusCode = HttpStatusCode.OK,
-                    Result = "Регистрация завершена"
-                });       
+                    IsSuccess = false,
+                    StatusCode = HttpStatusCode.BadRequest,
+                    ErrorMessages = { "Неверный логин или пароль" }
+                });
+            }
+
+            var roles = await userManager.GetRolesAsync(userFromDb);
+            var token = jwtTokenGenerator.GenerateJwtToken(userFromDb, roles);
+
+            return Ok(new ResponseServer
+            {
+                StatusCode = HttpStatusCode.OK,
+                Result = new LoginResponseDto
+                {
+                    Email = userFromDb.Email,
+                    Token = token,
+                }
+            });
         }
     }
 }

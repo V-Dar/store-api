@@ -11,7 +11,7 @@ namespace Api.Service
         private readonly string secretKey;
         public JwtTokenGenerator(IConfiguration configuration)
         {
-            secretKey = configuration["AuthSettings:SecretKey"];
+            secretKey = configuration["AuthSettings:SeсretKey"];
         }
         public string GenerateJwtToken(AppUser appUser, IList<string> roles)
         {
